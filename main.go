@@ -3,16 +3,63 @@ package main
 import (
     "encoding/base64"
     "fmt"
+    "io"
     "log"
+    "net/http"
+    "net/url"
+    "os"
     "strconv"
+    "strings"
 )
 
+type template struct {
+    primary string
+    secondary string
+    attributes []attribute
+    skills []string
+}
+
+type attribute struct {
+    name string
+    rank int
+}
+
 func main() {
-    template := "OQBEAWYyOLITOZoxFlgiNA"
-    data, err := base64.RawStdEncoding.DecodeString(template)
+    if len(os.Args) != 2 {
+        log.Fatal("usage: go run main.go TEMPLATECODE")
+    }
+    arg := os.Args[1]
+    templ := parse(arg)
+    fmt.Println("-")
+    printWikidot(templ)
+}
+
+func link(skill string) string {
+    return "https://wiki.guildwars.com/wiki/" + url.PathEscape(skill)
+}
+
+func crawlImageUrl(skillName string) string {
+    resp, err := http.Get(link(skillName))
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer resp.Body.Close()
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        log.Fatal(err)
+    }
+    imgRaw := strings.Split(string(body), "skill-image")[1]
+    srcRaw := strings.Split(imgRaw, "src=")[1]
+    imgurl := strings.Split(srcRaw[1:], "\"")[0]
+    return "https://wiki.guildwars.com" + imgurl
+}
+
+func parse(input string) template {
+    templ := template{}
+    data, err := base64.RawStdEncoding.DecodeString(input)
     if err != nil {
         fmt.Println(err)
-        return
+        return template{}
     }
     binaryString := ""
     for _, byt := range data {
@@ -27,21 +74,25 @@ func main() {
         log.Fatalf("Incorrect version")
     }
     profLen := next(rev6, &offset, 2)
-    primary := professions[next(rev6, &offset, profLen*2+4)]
-    secondary := professions[next(rev6, &offset, profLen*2+4)]
-    fmt.Println(primary, "/", secondary)
+    templ.primary = professions[next(rev6, &offset, profLen*2+4)]
+    templ.secondary = professions[next(rev6, &offset, profLen*2+4)]
+    fmt.Println(templ.primary, "/", templ.secondary)
     numAttrs := next(rev6, &offset, 4)
     attrLen := next(rev6, &offset, 4)
     for i:=0; i<numAttrs; i++ {
         attrId := attributes[next(rev6, &offset, attrLen+4)]
         attrRank := next(rev6, &offset, 4)
+        attr := attribute{name:attrId, rank:attrRank}
         fmt.Println(attrId, ":", attrRank)
+        templ.attributes = append(templ.attributes, attr)
     }
     skillLen := next(rev6, &offset, 4)
     for i:=0; i<8; i++ {
         skillId := skills[next(rev6, &offset, skillLen+8)]
         fmt.Println(skillId)
+        templ.skills = append(templ.skills, skillId)
     }
+    return templ
 }
 
 func next(s string, offset *int, n int) int {
@@ -77,6 +128,40 @@ func revWithPadding(in string, n int) string {
         }
     }
     return out
+}
+
+func printWikidot(templ template) {
+    fmt.Printf(`[[table style="border-collapse:collapse;"]]
+[[row]]
+[[cell style="border: 2px solid silver; padding: 10px" colspan="8"]]
+Style: Prophecies Only (PLAYERNAME)
+[[/cell]]
+[[/row]]
+[[row]]
+[[cell style="border: 2px solid silver; padding: 10px" colspan="8"]]
+Primary/Secondary Class: %s / %s
+[[/cell]]
+[[/row]]
+[[row]]
+[[cell style="border: 2px solid silver; padding: 10px" colspan="8"]]
+Attributes:
+`, templ.primary, templ.secondary)
+    for _, attr := range templ.attributes {
+        fmt.Println(attr.name, ":", attr.rank)
+    }
+    fmt.Println("[[/cell]]")
+    fmt.Println("[[/row]]")
+    fmt.Println("[[row]]")
+    for _, s := range templ.skills {
+        fmt.Println(`[[cell style="border: 2px solid silver; padding: 10px"]]`)
+        fmt.Println(`[[div style="margin-left:auto; margin-right:auto; padding: 10px; text-align: center"]]`)
+        fmt.Println("[[image " + crawlImageUrl(s) + "]]")
+        fmt.Println("[" + link(s) + " " + s + "]")
+        fmt.Println("[[/div]]")
+        fmt.Println("[[/cell]]")
+    }
+    fmt.Println("[[/row]]")
+    fmt.Println("[[/table]]")
 }
 
 var professions = map[int]string{
