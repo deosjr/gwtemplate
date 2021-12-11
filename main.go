@@ -29,6 +29,10 @@ func main() {
         log.Fatal("usage: go run main.go TEMPLATECODE")
     }
     arg := os.Args[1]
+    // hack: paste some trailing zeroes to satisfy golangs base64 package
+    if len(arg) % 2 == 1 {
+        arg = arg + "A"
+    }
     templ := parse(arg)
     fmt.Println("-")
     printWikidot(templ)
