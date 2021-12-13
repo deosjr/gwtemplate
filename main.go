@@ -135,7 +135,7 @@ func revWithPadding(in string, n int) string {
 }
 
 func printWikidot(templ template) {
-    fmt.Printf(`[[table style="border-collapse:collapse;"]]
+    fmt.Printf(`[[table style="width:80%%; border-collapse:collapse;"]]
 [[row]]
 [[cell style="border: 2px solid silver; padding: 10px" colspan="8"]]
 Style: Prophecies Only (PLAYERNAME)
@@ -157,9 +157,11 @@ Attributes:
     fmt.Println("[[/row]]")
     fmt.Println("[[row]]")
     for _, s := range templ.skills {
-        fmt.Println(`[[cell style="border: 2px solid silver; padding: 10px"]]`)
-        fmt.Println(`[[div style="margin-left:auto; margin-right:auto; padding: 10px; text-align: center"]]`)
+        fmt.Println(`[[cell style="width:12.5%%; border: 2px solid silver; padding: 10px"]]`)
+        fmt.Println(`[[div style="margin-left:auto; margin-right:auto; padding: 1px; text-align: center"]]`)
         fmt.Println("[[image " + crawlImageUrl(s) + "]]")
+        fmt.Println("[[/div]]")
+        fmt.Println(`[[div style="margin-left:auto; margin-right:auto; padding: 1px; text-align: center"]]`)
         fmt.Println("[" + link(s) + " " + s + "]")
         fmt.Println("[[/div]]")
         fmt.Println("[[/cell]]")
