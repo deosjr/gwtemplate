@@ -17,6 +17,7 @@ type template struct {
     secondary string
     attributes []attribute
     skills []string
+    code string
 }
 
 type attribute struct {
@@ -25,17 +26,18 @@ type attribute struct {
 }
 
 func main() {
-    if len(os.Args) != 2 {
-        log.Fatal("usage: go run main.go TEMPLATECODE")
+    if len(os.Args) != 3 {
+        log.Fatal("usage: go run main.go TEMPLATECODE \"Title\"")
     }
     arg := os.Args[1]
     // hack: paste some trailing zeroes to satisfy golangs base64 package
     if len(arg) % 2 == 1 {
         arg = arg + "A"
     }
+    title := os.Args[2]
     templ := parse(arg)
     fmt.Println("-")
-    printWikidot(templ)
+    printWikidot(templ, title)
 }
 
 func link(skill string) string {
@@ -59,7 +61,7 @@ func crawlImageUrl(skillName string) string {
 }
 
 func parse(input string) template {
-    templ := template{}
+    templ := template{code: input}
     data, err := base64.RawStdEncoding.DecodeString(input)
     if err != nil {
         fmt.Println(err)
@@ -134,8 +136,9 @@ func revWithPadding(in string, n int) string {
     return out
 }
 
-func printWikidot(templ template) {
-    fmt.Printf(`[[table style="width:80%%; border-collapse:collapse;"]]
+func printWikidot(templ template, title string) {
+    fmt.Printf(`[[collapsible show="%s" hide="- hide"]]
+[[table style="width:80%%; border-collapse:collapse;"]]
 [[row]]
 [[cell style="border: 2px solid silver; padding: 10px" colspan="8"]]
 Style: Prophecies Only (PLAYERNAME)
@@ -148,8 +151,13 @@ Primary/Secondary Class: %s / %s
 [[/row]]
 [[row]]
 [[cell style="border: 2px solid silver; padding: 10px" colspan="8"]]
+Template Code: %s
+[[/cell]]
+[[/row]]
+[[row]]
+[[cell style="border: 2px solid silver; padding: 10px" colspan="8"]]
 Attributes:
-`, templ.primary, templ.secondary)
+`, title, templ.primary, templ.secondary, templ.code)
     for _, attr := range templ.attributes {
         fmt.Println(attr.name, ":", attr.rank)
     }
@@ -168,6 +176,7 @@ Attributes:
     }
     fmt.Println("[[/row]]")
     fmt.Println("[[/table]]")
+    fmt.Println("[[/collapsible]]")
 }
 
 var professions = map[int]string{

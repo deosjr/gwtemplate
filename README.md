@@ -4,7 +4,7 @@ Parse skill template codes for Guild Wars
 Last part of output is for use on wikidot, where we embed images crawled from wiki.guildwars.com
 
 ## Usage
-```go run main.go TEMPLATECODE```
+```go run main.go TEMPLATECODE "Title of build"```
 
 Warning: frequent/rapid use will make too many calls to wiki, be nice.
 If needed this code could be extended to crawl all skill image urls once and store them.
